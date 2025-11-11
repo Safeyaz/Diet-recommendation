@@ -1,84 +1,145 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Food Recommendation System</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <header>
-        <h1>AI-Based Personalized Food Recommendation System</h1>
-        <p>Your Health, Your Diet, Your Way</p>
-    </header>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('health-form');
+    const mealPlanSection = document.getElementById('meal-plan');
+    const mealTableBody = document.querySelector('#meal-table tbody');
+    const printButton = document.getElementById('print-button');
 
-    <section id="user-input">
-        <h2>Get Your Personalized Meal Plan</h2>
-        <form id="health-form">
-            <label for="age">Age:</label>
-            <input type="number" id="age" name="age" required>
+    let weeklyMealPlan = [];
 
-            <label for="weight">Weight (kg):</label>
-            <input type="number" id="weight" name="weight" required>
+    // 🌗 Dark/Light mode toggle button
+    const toggleBtn = document.createElement("button");
+    toggleBtn.id = "mode-toggle";
+    toggleBtn.textContent = "☀️"; // default = light
+    document.body.appendChild(toggleBtn);
 
-            <label for="height">Height (cm):</label>
-            <input type="number" id="height" name="height" required>
+    // Default: Light mode
+    document.body.classList.add("light-mode");
 
-            <label for="activity">Activity Level:</label>
-            <select id="activity" name="activity" required>
-                <option value="low">Low</option>
-                <option value="moderate">Moderate</option>
-                <option value="high">High</option>
-            </select>
+    toggleBtn.addEventListener("click", () => {
+        if (document.body.classList.contains("light-mode")) {
+            document.body.classList.remove("light-mode");
+            document.body.classList.add("dark-mode");
+            toggleBtn.textContent = "🌙";
+        } else {
+            document.body.classList.remove("dark-mode");
+            document.body.classList.add("light-mode");
+            toggleBtn.textContent = "☀️";
+        }
+    });
 
-            <label for="condition">Health Condition:</label>
-            <select id="condition" name="condition" required>
-                <option value="diabetes">Diabetes</option>
-                <option value="hypertension">Hypertension</option>
-                <option value="obesity">Obesity</option>
-                <option value="thyroid">Thyroid Disorder</option>
-            </select>
+    // Form submission
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
 
-            <label for="diet">Diet Preference:</label>
-            <select id="diet" name="diet" required>
-                <option value="vegetarian">Vegetarian</option>
-                <option value="vegan">Vegan</option>
-                <option value="gluten-free">Gluten-Free</option>
-                <option value="none">No Preference</option>
-            </select>
+        const age = parseInt(document.getElementById('age').value, 10);
+        const weight = parseFloat(document.getElementById('weight').value);
+        const height = parseFloat(document.getElementById('height').value);
+        const condition = document.getElementById('condition').value;
+        const diet = document.getElementById('diet').value;
+        const activity = document.getElementById('activity').value;
 
-            <button type="submit">Generate Meal Plan</button>
-        </form>
-    </section>
+        const bmi = (weight / ((height / 100) ** 2)).toFixed(1);
 
-    <section id="meal-plan" class="hidden">
-        <h2>Your Personalized Meal Plan</h2>
-        <div id="meal-details">
-            <table id="meal-table">
-                <thead>
-                    <tr>
-                        <th>Day</th>
-                        <th>Breakfast</th>
-                        <th>Lunch</th>
-                        <th>Dinner</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Weekly meal plan will be dynamically inserted here -->
-                </tbody>
-            </table>
-        </div>
-        <div id="button-container">
-            <!-- <button id="accept-button">Accept Meal Plan</button> -->
-            <button id="regenerate-button">Regenerate Meal Plan</button>
-            <button id="print-button">Print Meal Plan</button>
-        </div>
-    </section>
+        const ageGroup = getAgeGroup(age);
 
-    <!-- <footer>
-        <p>&copy; 2024 AI Food Recommendation System. All rights reserved.</p>
-    </footer> -->
+        weeklyMealPlan = generateWeeklyMealPlan(condition, diet, ageGroup);
+        displayMealPlan(weeklyMealPlan);
 
-    <script src="script.js"></script>
-</body>
-</html>
+        displayBMIResult(bmi, activity);
+
+        mealPlanSection.classList.remove('hidden');
+
+        //  Scroll smoothly to meal plan
+        mealPlanSection.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    function getAgeGroup(age) {
+        if (age < 13) return "child";
+        if (age >= 13 && age <= 19) return "teen";
+        if (age >= 20 && age <= 59) return "adult";
+        return "senior";
+    }
+
+    function generateWeeklyMealPlan(condition, diet, ageGroup) {
+        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+        // ✅ Master meal plan options (your existing data here)
+        const mealOptions = {
+            none: {
+                vegetarian: {
+                    adult: [
+                        { breakfast: "Masala oats", lunch: "Vegetable biryani", dinner: "Palak paneer with roti" },
+                        { breakfast: "Dhokla", lunch: "Dal fry with rice", dinner: "Mushroom curry" },
+                    ]
+                },
+                none: {
+                    adult: [
+                        { breakfast: "Eggs & toast", lunch: "Chicken curry", dinner: "Grilled salmon" },
+                        { breakfast: "Oats & milk", lunch: "Mutton soup", dinner: "Fish curry" },
+                    ]
+                }
+            }
+            // ... keep the rest of your mealOptions here
+        };
+
+        const meals = (mealOptions[condition] &&
+                       mealOptions[condition][diet] &&
+                       (mealOptions[condition][diet][ageGroup] || mealOptions[condition][diet].adult))
+            || [{ breakfast: "Custom", lunch: "Custom", dinner: "Custom" }];
+
+        return days.map((day, index) => {
+            const mealChoice = meals[index % meals.length];
+            return { day, ...mealChoice };
+        });
+    }
+
+    function displayMealPlan(mealPlan) {
+        mealTableBody.innerHTML = mealPlan.map(day => `
+            <tr>
+                <td>${day.day}</td>
+                <td contenteditable="true">${day.breakfast}</td>
+                <td contenteditable="true">${day.lunch}</td>
+                <td contenteditable="true">${day.dinner}</td>
+            </tr>
+        `).join('');
+    }
+
+    function displayBMIResult(bmi, activity) {
+        let category, recommendation;
+
+        if (bmi < 18.5) {
+            category = "Underweight";
+            recommendation = (activity === "high") ? "Reduce activity slightly and focus on calorie-rich meals." :
+                             (activity === "moderate") ? "Maintain activity but eat more balanced meals." :
+                             "Increase activity gradually with healthy eating.";
+        } else if (bmi < 24.9) {
+            category = "Normal";
+            recommendation = "Maintain your current activity level for a healthy lifestyle.";
+        } else if (bmi < 29.9) {
+            category = "Overweight";
+            recommendation = (activity === "low") ? "Increase your activity level to moderate." :
+                             "Maintain or slightly increase intensity.";
+        } else {
+            category = "Obese";
+            recommendation = "Focus on increasing activity gradually and eating low-calorie nutrient-rich foods.";
+        }
+
+        let bmiSection = document.getElementById('bmi-section');
+        if (!bmiSection) {
+            bmiSection = document.createElement('div');
+            bmiSection.id = 'bmi-section';
+            mealPlanSection.appendChild(bmiSection);
+        }
+
+        bmiSection.innerHTML = `
+            <h3>Your BMI Result</h3>
+            <p><strong>BMI:</strong> ${bmi} (${category})</p>
+            <p><strong>Recommendation:</strong> ${recommendation}</p>
+        `;
+    }
+
+    // 🖨 Print Button
+    printButton.addEventListener('click', function () {
+        window.print();
+    });
+});
